@@ -58,11 +58,22 @@ def load_file(li, neflags, format):
 
     return 0
 
-def load_file_sbl(li):
+def load_file_sbl(li, start = 0):
 
-    start = 0
-    if dwordAt(li, 8) == 0x7D0B435A:
-        start = 0x2800
+    if dwordAt(li, start + 8) == 0x7D0B435A:
+        # The actual header is ahead
+        li.seek(start + 4)
+        s = li.read(4)
+        while len(s) > 0 and struct.unpack('<I', s)[0] != 0x844BDCD1:
+            s = li.read(4)
+        if len(s) > 0:
+            return load_file_sbl(li, li.tell() - 4)
+        return 0
+
+    if dwordAt(li, start) != 0x844BDCD1:
+        print "dword at {}: {}".format(hex(start), hex(dwordAt(li, start)))
+        print "Signature mismatch at expected start {}".format(hex(start))
+        return 0
 
     image_source = dwordAt(li, start + 0x14)
     image_dest = dwordAt(li, start + 0x18)
